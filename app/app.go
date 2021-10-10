@@ -1,6 +1,7 @@
 package app
 
 import (
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	"github.com/lozhkindm/banking-auth/config"
