@@ -27,7 +27,7 @@ func (d AuthRepositoryDB) FindByCredentials(username, password string) (*Login, 
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errs.NewInvalidCredentialsError()
+			return nil, errs.NewAuthorizationError("invalid credentials")
 		} else {
 			logger.Error("Error while finding user by credentials: " + err.Error())
 			return nil, errs.NewDatabaseError()

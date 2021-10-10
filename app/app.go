@@ -15,11 +15,16 @@ func Start() {
 	router := mux.NewRouter()
 	dbClient := getDbClient()
 
-	ah := AuthHandlers{service: service.NewAuthService(domain.NewAuthRepositoryDB(dbClient))}
+	ah := AuthHandlers{
+		service: service.NewAuthService(
+			domain.NewAuthRepositoryDB(dbClient),
+			domain.GetRolePermissions(),
+		),
+	}
 
 	router.HandleFunc("/auth/login", ah.Login).Methods(http.MethodPost)
 	//router.HandleFunc("/auth/register", ah.Register).Methods(http.MethodPost)
-	//router.HandleFunc("/auth/verify", ah.Verify).Methods(http.MethodGet)
+	router.HandleFunc("/auth/verify", ah.Verify).Methods(http.MethodGet)
 
 	log.Fatal(http.ListenAndServe(config.NewServerConfig().AsString(), router))
 }

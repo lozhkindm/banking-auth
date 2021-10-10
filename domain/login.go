@@ -31,8 +31,8 @@ func (l Login) GenerateToken() (*string, *errs.AppError) {
 	signedToken, err := token.SignedString([]byte(HmacSampleSecret))
 
 	if err != nil {
-		logger.Error("Failed while signing token: " + err.Error())
-		return nil, errs.NewGenerateTokenError()
+		logger.Error("Error while signing token: " + err.Error())
+		return nil, errs.NewAuthorizationError("Cannot sign the token")
 	}
 
 	return &signedToken, nil

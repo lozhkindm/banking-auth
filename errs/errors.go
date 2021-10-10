@@ -20,16 +20,9 @@ func NewDatabaseError() *AppError {
 	}
 }
 
-func NewInvalidCredentialsError() *AppError {
+func NewAuthorizationError(msg string) *AppError {
 	return &AppError{
 		Code:    http.StatusUnauthorized,
-		Message: "invalid credentials",
-	}
-}
-
-func NewGenerateTokenError() *AppError {
-	return &AppError{
-		Code:    http.StatusInternalServerError,
-		Message: "cannot generate token",
+		Message: msg,
 	}
 }
