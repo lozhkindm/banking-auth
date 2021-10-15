@@ -55,7 +55,7 @@ func (s DefaultAuthService) Verify(urlParams map[string]string) *errs.AppError {
 			isAuthorized := s.rolePermissions.IsAuthorizedFor(claims.Role, urlParams["route_name"])
 
 			if !isAuthorized {
-				return errs.NewUnauthorizedError(fmt.Sprintf("%s role is not authorized", claims.Role))
+				return errs.NewForbiddenError(fmt.Sprintf("%s role is not authorized", claims.Role))
 			}
 
 			return nil
