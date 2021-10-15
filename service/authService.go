@@ -5,8 +5,8 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/lozhkindm/banking-auth/domain"
 	"github.com/lozhkindm/banking-auth/dto"
-	"github.com/lozhkindm/banking-auth/errs"
-	"github.com/lozhkindm/banking-auth/logger"
+	"github.com/lozhkindm/banking-lib/errs"
+	"github.com/lozhkindm/banking-lib/logger"
 )
 
 type AuthService interface {
@@ -48,19 +48,19 @@ func (s DefaultAuthService) Verify(urlParams map[string]string) *errs.AppError {
 
 			if claims.IsUserRole() {
 				if !claims.IsRequestVerifiedWithTokenClaims(urlParams) {
-					return errs.NewAuthorizationError("request not verified with the token claims")
+					return errs.NewUnauthorizedError("request not verified with the token claims")
 				}
 			}
 
 			isAuthorized := s.rolePermissions.IsAuthorizedFor(claims.Role, urlParams["route_name"])
 
 			if !isAuthorized {
-				return errs.NewAuthorizationError(fmt.Sprintf("%s role is not authorized", claims.Role))
+				return errs.NewUnauthorizedError(fmt.Sprintf("%s role is not authorized", claims.Role))
 			}
 
 			return nil
 		} else {
-			return errs.NewAuthorizationError("invalid token")
+			return errs.NewUnauthorizedError("invalid token")
 		}
 	}
 }
@@ -72,7 +72,7 @@ func jwtTokenFromString(tokenString string) (*jwt.Token, *errs.AppError) {
 
 	if err != nil {
 		logger.Error("Error while parsing token: " + err.Error())
-		return nil, errs.NewAuthorizationError("Cannot parse the token")
+		return nil, errs.NewUnauthorizedError("Cannot parse the token")
 	}
 
 	return token, nil

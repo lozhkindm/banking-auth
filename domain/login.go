@@ -3,8 +3,8 @@ package domain
 import (
 	"database/sql"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/lozhkindm/banking-auth/errs"
-	"github.com/lozhkindm/banking-auth/logger"
+	"github.com/lozhkindm/banking-lib/errs"
+	"github.com/lozhkindm/banking-lib/logger"
 	"strings"
 	"time"
 )
@@ -32,7 +32,7 @@ func (l Login) GenerateToken() (*string, *errs.AppError) {
 
 	if err != nil {
 		logger.Error("Error while signing token: " + err.Error())
-		return nil, errs.NewAuthorizationError("Cannot sign the token")
+		return nil, errs.NewUnauthorizedError("Cannot sign the token")
 	}
 
 	return &signedToken, nil

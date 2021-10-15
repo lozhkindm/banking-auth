@@ -3,8 +3,8 @@ package domain
 import (
 	"database/sql"
 	"github.com/jmoiron/sqlx"
-	"github.com/lozhkindm/banking-auth/errs"
-	"github.com/lozhkindm/banking-auth/logger"
+	"github.com/lozhkindm/banking-lib/errs"
+	"github.com/lozhkindm/banking-lib/logger"
 )
 
 type AuthRepository interface {
@@ -27,7 +27,7 @@ func (d AuthRepositoryDB) FindByCredentials(username, password string) (*Login, 
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errs.NewAuthorizationError("invalid credentials")
+			return nil, errs.NewUnauthorizedError("invalid credentials")
 		} else {
 			logger.Error("Error while finding user by credentials: " + err.Error())
 			return nil, errs.NewDatabaseError()
