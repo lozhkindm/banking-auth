@@ -55,6 +55,24 @@ func (h AuthHandlers) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h AuthHandlers) Refresh(w http.ResponseWriter, r *http.Request) {
+	var req dto.RefreshRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+
+	if err != nil {
+		writeResponse(w, http.StatusBadRequest, err.Error())
+	} else {
+		res, err := h.service.Refresh(req)
+
+		if err != nil {
+			writeResponse(w, err.Code, err.AsMessage())
+		} else {
+			writeResponse(w, http.StatusOK, res)
+		}
+	}
+}
+
 func notAuthorizedResponse(msg string) map[string]interface{} {
 	return map[string]interface{}{
 		"is_authorized": false,

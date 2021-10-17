@@ -12,6 +12,7 @@ import (
 type AuthService interface {
 	Login(request dto.LoginRequest) (*dto.LoginResponse, *errs.AppError)
 	Verify(urlParams map[string]string) *errs.AppError
+	Refresh(request dto.RefreshRequest) (*dto.LoginResponse, *errs.AppError)
 }
 
 type DefaultAuthService struct {
@@ -19,21 +20,50 @@ type DefaultAuthService struct {
 	rolePermissions domain.RolePermissions
 }
 
-func (s DefaultAuthService) Login(req dto.LoginRequest) (*dto.LoginResponse, *errs.AppError) {
-	login, err := s.repo.FindByCredentials(req.Username, req.Password)
+func (s DefaultAuthService) Refresh(req dto.RefreshRequest) (*dto.LoginResponse, *errs.AppError) {
+	if ve := req.IsAccessTokenValid(); ve != nil {
+		if ve.Errors != jwt.ValidationErrorExpired {
+			return nil, errs.NewUnauthorizedError("invalid access token")
+		}
 
-	if err != nil {
+		if err := s.repo.RefreshTokenExists(req.RefreshToken); err != nil {
+			return nil, err
+		}
+
+		if accessToken, err := domain.NewAccessTokenFromRefreshToken(req.RefreshToken); err != nil {
+			return nil, err
+		} else {
+			return &dto.LoginResponse{AccessToken: accessToken}, nil
+		}
+	}
+
+	return nil, errs.NewUnauthorizedError("current access token is not expired")
+}
+
+func (s DefaultAuthService) Login(req dto.LoginRequest) (*dto.LoginResponse, *errs.AppError) {
+	var login *domain.Login
+	var err *errs.AppError
+	var accessToken, refreshToken string
+
+	if login, err = s.repo.FindByCredentials(req.Username, req.Password); err != nil {
 		return nil, err
 	}
 
-	token, err := login.GenerateToken()
+	if accessToken, err = login.GenerateAccessToken(); err != nil {
+		return nil, err
+	}
 
-	if err != nil {
+	if refreshToken, err = login.GenerateRefreshToken(); err != nil {
+		return nil, err
+	}
+
+	if err = s.repo.SaveRefreshToken(refreshToken); err != nil {
 		return nil, err
 	}
 
 	res := dto.LoginResponse{
-		Token: *token,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}
 
 	return &res, nil
@@ -44,7 +74,7 @@ func (s DefaultAuthService) Verify(urlParams map[string]string) *errs.AppError {
 		return err
 	} else {
 		if jwtToken.Valid {
-			claims := jwtToken.Claims.(*domain.Claims)
+			claims := jwtToken.Claims.(*domain.AccessClaims)
 
 			if claims.IsUserRole() {
 				if !claims.IsRequestVerifiedWithTokenClaims(urlParams) {
@@ -66,7 +96,7 @@ func (s DefaultAuthService) Verify(urlParams map[string]string) *errs.AppError {
 }
 
 func jwtTokenFromString(tokenString string) (*jwt.Token, *errs.AppError) {
-	token, err := jwt.ParseWithClaims(tokenString, &domain.Claims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &domain.AccessClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(domain.HmacSampleSecret), nil
 	})
 

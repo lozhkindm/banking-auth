@@ -9,10 +9,40 @@ import (
 
 type AuthRepository interface {
 	FindByCredentials(username, password string) (*Login, *errs.AppError)
+	SaveRefreshToken(refreshToken string) *errs.AppError
+	RefreshTokenExists(refreshToken string) *errs.AppError
 }
 
 type AuthRepositoryDB struct {
 	client *sqlx.DB
+}
+
+func (d AuthRepositoryDB) RefreshTokenExists(refreshToken string) *errs.AppError {
+	var token string
+
+	sqlSelect := "SELECT refresh_token FROM refresh_token_store WHERE refresh_token = ?"
+
+	if err := d.client.Get(&token, sqlSelect, refreshToken); err == nil {
+		return nil
+	} else if err == sql.ErrNoRows {
+		return errs.NewUnauthorizedError("Refresh token not found")
+	} else {
+		logger.Error("Error while getting refresh token: " + err.Error())
+		return errs.NewDatabaseError()
+	}
+}
+
+func (d AuthRepositoryDB) SaveRefreshToken(refreshToken string) *errs.AppError {
+	sqlInsert := "INSERT INTO refresh_token_store (refresh_token) VALUES (?)"
+
+	_, err := d.client.Exec(sqlInsert, refreshToken)
+
+	if err != nil {
+		logger.Error("Error while creating a new refresh token: " + err.Error())
+		return errs.NewDatabaseError()
+	}
+
+	return nil
 }
 
 func (d AuthRepositoryDB) FindByCredentials(username, password string) (*Login, *errs.AppError) {

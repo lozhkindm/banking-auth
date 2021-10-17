@@ -1,5 +1,6 @@
 package dto
 
 type LoginResponse struct {
-	Token string
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 }

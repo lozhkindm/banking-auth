@@ -26,6 +26,7 @@ func Start() {
 	router.HandleFunc("/auth/login", ah.Login).Methods(http.MethodPost)
 	//router.HandleFunc("/auth/register", ah.Register).Methods(http.MethodPost)
 	router.HandleFunc("/auth/verify", ah.Verify).Methods(http.MethodGet)
+	router.HandleFunc("/auth/refresh", ah.Refresh).Methods(http.MethodPost)
 
 	log.Fatal(http.ListenAndServe(config.NewServerConfig().AsString(), router))
 }

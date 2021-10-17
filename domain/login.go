@@ -4,12 +4,9 @@ import (
 	"database/sql"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/lozhkindm/banking-lib/errs"
-	"github.com/lozhkindm/banking-lib/logger"
 	"strings"
 	"time"
 )
-
-const TokenDuration = time.Hour
 
 type Login struct {
 	Username   string         `db:"username"`
@@ -18,42 +15,44 @@ type Login struct {
 	Role       string         `db:"role"`
 }
 
-func (l Login) GenerateToken() (*string, *errs.AppError) {
-	var claims jwt.MapClaims
-
-	if l.Accounts.Valid && l.CustomerId.Valid {
-		claims = l.claimsForUser()
-	} else {
-		claims = l.claimsForAdmin()
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString([]byte(HmacSampleSecret))
-
-	if err != nil {
-		logger.Error("Error while signing token: " + err.Error())
-		return nil, errs.NewUnauthorizedError("Cannot sign the token")
-	}
-
-	return &signedToken, nil
+func (l Login) GenerateAccessToken() (string, *errs.AppError) {
+	authToken := NewAuthToken(l.ClaimsForAccessToken())
+	return authToken.NewAccessToken()
 }
 
-func (l Login) claimsForUser() jwt.MapClaims {
+func (l Login) GenerateRefreshToken() (string, *errs.AppError) {
+	authToken := NewAuthToken(l.ClaimsForAccessToken())
+	return authToken.newRefreshToken()
+}
+
+func (l Login) ClaimsForAccessToken() AccessClaims {
+	if l.Accounts.Valid && l.CustomerId.Valid {
+		return l.claimsForUser()
+	} else {
+		return l.claimsForAdmin()
+	}
+}
+
+func (l Login) claimsForUser() AccessClaims {
 	accounts := strings.Split(l.Accounts.String, ",")
 
-	return jwt.MapClaims{
-		"customer_id": l.CustomerId.String,
-		"role":        l.Role,
-		"username":    l.Username,
-		"accounts":    accounts,
-		"exp":         time.Now().Add(TokenDuration).Unix(),
+	return AccessClaims{
+		CustomerId: l.CustomerId.String,
+		Accounts:   accounts,
+		Username:   l.Username,
+		Role:       l.Role,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(AccessTokenDuration).Unix(),
+		},
 	}
 }
 
-func (l Login) claimsForAdmin() jwt.MapClaims {
-	return jwt.MapClaims{
-		"role":     l.Role,
-		"username": l.Username,
-		"exp":      time.Now().Add(TokenDuration).Unix(),
+func (l Login) claimsForAdmin() AccessClaims {
+	return AccessClaims{
+		Role:     l.Role,
+		Username: l.Username,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(AccessTokenDuration).Unix(),
+		},
 	}
 }
